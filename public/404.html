@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page Not Found | ARNOVA Academic Studio</title>
+  <style>
+    @import url('https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,600,700&display=swap');
+
+    :root {
+      --font-satoshi: 'Satoshi', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --bg-dark: #050806;
+      --bg-dark-gradient-start: #0a140f;
+      --bg-dark-gradient-end: #040806;
+      --text-dark-primary: #ffffff;
+      --text-dark-secondary: rgba(255, 255, 255, 0.75);
+      --accent-lime: #cbf53d;
+      --accent-lime-hover: #bde635;
+      --accent-lime-bg: rgba(203, 245, 61, 0.1);
+      --radius-pill: 999px;
+      --transition-smooth: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-satoshi);
+      background-color: var(--bg-dark);
+      color: var(--text-dark-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .not-found-page {
+      min-height: 100vh;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 60px 24px;
+      background: radial-gradient(circle at 50% 0%, var(--bg-dark-gradient-start) 0%, var(--bg-dark-gradient-end) 70%);
+    }
+
+    .not-found-content {
+      max-width: 560px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .not-found-eyebrow {
+      display: inline-flex;
+      padding: 8px 18px;
+      border-radius: var(--radius-pill);
+      background: var(--accent-lime-bg);
+      border: 1px solid rgba(203, 245, 61, 0.3);
+      color: var(--accent-lime);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .not-found-title {
+      font-size: clamp(28px, 5vw, 42px);
+      font-weight: 600;
+      color: var(--text-dark-primary);
+      line-height: 1.2;
+    }
+
+    .not-found-subtitle {
+      font-size: 16px;
+      color: var(--text-dark-secondary);
+      line-height: 1.6;
+    }
+
+    .not-found-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 12px;
+    }
+
+    .btn-lime {
+      background: linear-gradient(135deg, var(--accent-lime) 0%, var(--accent-lime-hover) 100%);
+      color: var(--bg-dark);
+      font-weight: 600;
+      font-size: 14px;
+      padding: 14px 28px;
+      border-radius: var(--radius-pill);
+      box-shadow: 
+        0 8px 25px rgba(203, 245, 61, 0.25),
+        inset 0 2px 2px rgba(255, 255, 255, 0.4);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      text-decoration: none;
+      transition: var(--transition-smooth);
+      cursor: pointer;
+    }
+
+    .btn-lime:hover {
+      background: linear-gradient(135deg, #d4f85e 0%, var(--accent-lime) 100%);
+      transform: translate3d(0, -3px, 0) scale(1.02);
+      box-shadow: 
+        0 12px 30px rgba(203, 245, 61, 0.4),
+        inset 0 2px 2px rgba(255, 255, 255, 0.6);
+    }
+
+    .btn-outline {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px) saturate(120%);
+      -webkit-backdrop-filter: blur(20px) saturate(120%);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-dark-primary);
+      font-weight: 600;
+      font-size: 14px;
+      padding: 14px 28px;
+      border-radius: var(--radius-pill);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15);
+      text-decoration: none;
+      transition: var(--transition-smooth);
+      cursor: pointer;
+    }
+
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translate3d(0, -3px, 0) scale(1.02);
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3), 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .peeking-svg-container {
+      margin-bottom: 8px;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="not-found-page">
+    <div class="not-found-content">
+      <div class="peeking-svg-container">
+        <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="100" height="100" rx="24" fill="#cbf53d" />
+          <path d="M50 32 L46 40 L41 38 L30 43 C20 40 12 46 8 56 C18 53 26 57 32 65 C36 58 42 55 50 62 C58 55 64 58 68 65 C74 57 82 53 92 56 C88 46 80 40 70 43 L59 38 L54 40 Z" fill="#050806" />
+        </svg>
+      </div>
+      <span class="not-found-eyebrow">404 error</span>
+      <h1 class="not-found-title">This page took a study break.</h1>
+      <p class="not-found-subtitle">
+        The link you followed doesn't match any page on ARNOVA Academic Studio. It may have moved, or the address might have a typo.
+      </p>
+      <div class="not-found-actions">
+        <a href="/" class="btn-lime">Back to home</a>
+        <a href="/#contact" class="btn-outline">Contact us</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
