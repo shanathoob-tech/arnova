@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ARNOVA Assignment | Academic Support Sri Lanka",
+  title: "HND Assignment Help Sri Lanka | Pearson BTEC Computing & Software Engineering | ARNOVA",
   description:
-    "Professional assignment support for Degree and HND students with transparent 2025 pricing, fast quotes, and confidential service.",
+    "Professional HND assignment help in Sri Lanka for Pearson BTEC Computing & Software Engineering students. 100% original, plagiarism-free, on-time delivery. Get Distinction-grade support today!",
 };
 
 export default function RootLayout({

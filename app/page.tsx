@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 
 const PeekingStudentSVG = () => (
   <svg width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="peeking-svg-character">
@@ -22,6 +23,68 @@ const PeekingStudentSVG = () => (
     <rect x="63" y="78" width="14" height="18" rx="7" fill="#ffedd5" className="svg-hand right-hand"/>
   </svg>
 );
+
+const AnimatedCounter = ({ value, suffix = "", className = "stat-number" }: { value: number; suffix?: string; className?: string }) => {
+  const [count, setCount] = useState(value);
+  const [hasAnimated, setHasAnimated] = useState(false);
+  const ref = React.useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    // Set to 0 after mounting to prepare count-up animation without hydration mismatch
+    setCount(0);
+  }, []);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && !hasAnimated) {
+          setHasAnimated(true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => {
+      if (ref.current) {
+        observer.unobserve(ref.current);
+      }
+    };
+  }, [hasAnimated]);
+
+  useEffect(() => {
+    if (!hasAnimated) return;
+
+    let start = 0;
+    const end = value;
+    const duration = 1500;
+    const startTime = performance.now();
+
+    const updateCount = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easeProgress = progress * (2 - progress); // easeOutQuad
+      setCount(Math.floor(easeProgress * (end - start) + start));
+
+      if (progress < 1) {
+        requestAnimationFrame(updateCount);
+      }
+    };
+
+    requestAnimationFrame(updateCount);
+  }, [hasAnimated, value]);
+
+  return (
+    <span ref={ref} className={className}>
+      {count}
+      {suffix}
+    </span>
+  );
+};
 
 const subjects = [
   {
@@ -65,12 +128,31 @@ const subjects = [
 const allSubjects = subjects.flatMap((group) => group.rows.map((row) => row[0]));
 const services = allSubjects;
 
+const subjectSlugs: Record<string, string> = {
+  "Programming": "programming",
+  "Database Design & Development (DDD)": "database-design-development",
+  "Professional Practice (PP)": "professional-practice",
+  "Networking": "networking",
+  "Planning A Computer Project (PACP)": "planning-computer-project",
+  "Security": "security",
+  "Software Development Lifecycle (SDLC)": "software-development-lifecycle",
+  "Web Development & Designing (WDD)": "web-development-designing",
+  "Business Process Support (BPS)": "business-process-support",
+  "Computing Research Project (CRP 1)": "computing-research-project-1",
+  "User Experience & Interface Design (UEID)": "user-experience-interface-design",
+  "Systems Analysis & Design (SAD)": "systems-analysis-design",
+  "Data Structures & Algorithms (DSA)": "data-structures-algorithms",
+  "Computing Research Project (CRP 2)": "computing-research-project-2",
+  "Discrete Maths (DM)": "discrete-maths",
+  "Applied Programming & Design Principles (APDP)": "applied-programming-design-principles",
+};
+
 const reviews = [
-  ["Got Distinction for my DSA assignment. Worth every rupee!", "Kasun", "HND Student"],
-  ["Submitted my CRP 1 on time. Life saver!", "Dilini", "HND Student"],
-  ["Very professional. No plagiarism issues at all.", "Ravindu", "2nd Semester"],
-  ["Best price in the market. Highly recommend.", "Nethmi", "HND Student"],
-  ["Amazing database design work. They provided complete ERDs and normalized tables alongside SQL scripts that scored 92%.", "Dinuka", "HND Computing Student"],
+  ["Got Distinction for my DSA assignment. Worth every rupee!", "Kasun", "BTEC HND Computing (Batch 12)"],
+  ["Submitted my CRP 1 on time. Life saver!", "Dilini", "Software Engineering Student"],
+  ["Very professional. No plagiarism issues at all.", "Ravindu", "HND Computing (Batch 15)"],
+  ["Best price in the market. Highly recommend.", "Nethmi", "BTEC HND Student"],
+  ["Amazing database design work. They provided complete ERDs and normalized tables alongside SQL scripts that scored 92%.", "Dinuka", "HND Computing (Batch 11)"],
   ["Saved my final semester. The networking report was structured perfectly with Cisco Packet Tracer mockups.", "Yasith", "HND Software Engineering"],
 ];
 
@@ -225,10 +307,37 @@ export default function Home() {
   const [isHeaderScrolled, setIsHeaderScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Dynamic sliding indicator for semester tabs
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [indicatorStyle, setIndicatorStyle] = useState<React.CSSProperties>({
+    left: 0,
+    width: 0,
+    opacity: 0
+  });
+
+  useEffect(() => {
+    const updateIndicator = () => {
+      const activeIndex = subjects.findIndex(s => s.semester === activeSemester);
+      const activeTab = tabRefs.current[activeIndex];
+      if (activeTab) {
+        setIndicatorStyle({
+          left: activeTab.offsetLeft,
+          width: activeTab.offsetWidth,
+          opacity: 1
+        });
+      }
+    };
+
+    updateIndicator();
+    // Keep aligned on resize
+    window.addEventListener("resize", updateIndicator);
+    return () => window.removeEventListener("resize", updateIndicator);
+  }, [activeSemester]);
+
   // Monitor scroll for header styling
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 50) {
+      if (window.scrollY > 15) {
         setIsHeaderScrolled(true);
       } else {
         setIsHeaderScrolled(false);
@@ -273,33 +382,93 @@ export default function Home() {
     setTimeout(() => {
       setDisplayedSemester(semester);
       setIsTransitioning(false);
-    }, 200);
+    }, 300);
   };
 
   const selectedSemesterData = subjects.find(s => s.semester === displayedSemester) || subjects[0];
 
+  const schemaData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "LocalBusiness",
+        "@id": "https://thearnova.netlify.app/#localbusiness",
+        "name": "ARNOVA Academic Studio",
+        "description": "Professional HND assignment help for Pearson BTEC Computing & Software Engineering students in Sri Lanka.",
+        "url": "https://thearnova.netlify.app",
+        "telephone": "+94-XXX-XXX-XXXX",
+        "email": "info@thearnova.netlify.app",
+        "address": {
+          "@type": "PostalAddress",
+          "addressCountry": "LK",
+          "addressLocality": "Colombo"
+        },
+        "serviceType": "Academic Assignment Support",
+        "areaServed": "Sri Lanka",
+        "priceRange": "Rs. 5,000 - Rs. 16,000",
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.9",
+          "reviewCount": "43"
+        }
+      },
+      {
+        "@type": "Service",
+        "@id": "https://thearnova.netlify.app/#service",
+        "serviceType": "HND Assignment Help Sri Lanka",
+        "provider": {
+          "@type": "Organization",
+          "name": "ARNOVA Academic Studio"
+        },
+        "areaServed": {
+          "@type": "Country",
+          "name": "Sri Lanka"
+        },
+        "audience": {
+          "@type": "EducationalAudience",
+          "educationalRole": "Student"
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://thearnova.netlify.app/#faq",
+        "mainEntity": faqs.map(([question, answer]) => ({
+          "@type": "Question",
+          "name": question,
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": answer
+          }
+        }))
+      }
+    ]
+  };
+
   return (
     <main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaData) }}
+      />
       {/* Navigation Header */}
       <header className={`site-header ${isHeaderScrolled ? "scrolled" : ""}`}>
-        <a className="brand" href="#home" aria-label="ARNOVA Academic Studio home">
+        <a className="brand" href="#home" aria-label="ARNOVA home">
           <ArnovaLogo />
           <div className="brand-text">
             <strong>ARNOVA</strong>
-            <small>Academic Studio</small>
           </div>
         </a>
         <nav className="nav-links" aria-label="Primary navigation">
           <a href="#about">About</a>
           <a href="#services">Services</a>
           <a href="#pricing">Pricing</a>
-          <a href="#how-it-works">Process</a>
+          <a href="/blog">Blog</a>
           <a href="#order">Order</a>
           <a href="#faq">FAQ</a>
           <a href="#contact">Contact</a>
         </nav>
         <a className="header-cta" href="#order">
-          Get Quote <ArrowIcon />
+          Get Free Quote <ArrowIcon />
         </a>
         
         {/* Mobile menu trigger */}
@@ -318,20 +487,29 @@ export default function Home() {
           <a href="#about" onClick={() => setIsMobileMenuOpen(false)}>About</a>
           <a href="#services" onClick={() => setIsMobileMenuOpen(false)}>Services</a>
           <a href="#pricing" onClick={() => setIsMobileMenuOpen(false)}>Pricing</a>
+          <a href="/blog" onClick={() => setIsMobileMenuOpen(false)}>Blog</a>
           <a href="#how-it-works" onClick={() => setIsMobileMenuOpen(false)}>Process</a>
           <a href="#order" onClick={() => setIsMobileMenuOpen(false)}>Order</a>
           <a href="#faq" onClick={() => setIsMobileMenuOpen(false)}>FAQ</a>
           <a href="#contact" onClick={() => setIsMobileMenuOpen(false)}>Contact</a>
         </div>
         <a className="mobile-nav-cta" href="#order" onClick={() => setIsMobileMenuOpen(false)}>
-          Get Quote
+          Get Free Quote
         </a>
       </div>
 
       {/* Hero Section */}
       <section className="hero-section" id="home">
         <div className="hero-bg-container">
-          <img src="/student_study_hero.png" alt="ARNOVA Academic Support Student Portrait" className="hero-bg-image" />
+          <Image 
+            src="/student_study_hero.png" 
+            alt="HND computing assignment help Sri Lanka - ARNOVA" 
+            fill
+            sizes="100vw"
+            priority
+            className="hero-bg-image"
+            style={{ objectFit: "cover" }}
+          />
           <div className="hero-bg-overlay"></div>
         </div>
 
@@ -350,24 +528,24 @@ export default function Home() {
             <SupportIcon /> 24/7 Support
           </div>
           <div className="floating-badge badge-5">
-            <AcademicIcon /> A+ Grade Focus
+            <AcademicIcon /> Distinction Grade Target
           </div>
         </div>
 
         <div className="hero-content">
-          <p className="hero-eyebrow">Academic Support & Guidance Since 2025</p>
+          <p className="hero-eyebrow">Professional Academic Support & Guidance</p>
           <h1 className="hero-title">
             Clear guidance. <span className="highlight-text">Real grades.</span><br />
             Academic success.
           </h1>
           <p className="hero-subtitle">
             Professional assignment support for Sri Lankan HND computing students. 
-            Get original solutions, timely delivery, and a complete grade success guarantee.
+            Get original solutions, timely delivery, and a comprehensive refund/revision policy.
           </p>
 
           <div className="hero-buttons">
             <a href="#pricing" className="btn-outline">
-              View Pricing
+              View Modules
             </a>
             <a href="#order" className="btn-lime">
               Get Free Quote <ArrowIcon />
@@ -385,7 +563,7 @@ export default function Home() {
           <div className="partnerships-header-block">
             <span className="section-eyebrow-dark">- TRUST & RELIABILITY</span>
             <h2 className="partnerships-title">
-              Over a year helping HND students <span>excel</span>.
+              Helping BTEC HND students <span>excel</span>.
             </h2>
             <p className="partnerships-desc">
               From structure mapping and computing logic validation to advanced implementation, we combine academic standards with professional insights to help you secure top-tier results.
@@ -393,27 +571,27 @@ export default function Home() {
           </div>
 
           <div className="stats-grid-horizontal">
-            <div className="stat-card-premium">
+            <div className="stat-card-premium reveal-on-scroll delay-1">
               <div className="stat-icon-wrapper">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 </svg>
               </div>
-              <span className="stat-number">95%+</span>
-              <span className="stat-label">Complete satisfaction</span>
+              <AnimatedCounter value={98} suffix="%" />
+              <span className="stat-label">Satisfaction rate</span>
             </div>
 
-            <div className="stat-card-premium">
+            <div className="stat-card-premium reveal-on-scroll delay-2">
               <div className="stat-icon-wrapper">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                 </svg>
               </div>
-              <span className="stat-number">99+</span>
-              <span className="stat-label">Assignments delivered</span>
+              <AnimatedCounter value={150} suffix="+" />
+              <span className="stat-label">Assignments supported</span>
             </div>
 
-            <div className="stat-card-premium">
+            <div className="stat-card-premium reveal-on-scroll delay-3">
               <div className="stat-icon-wrapper">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -422,8 +600,8 @@ export default function Home() {
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
               </div>
-              <span className="stat-number">43+</span>
-              <span className="stat-label">Happy students</span>
+              <AnimatedCounter value={90} suffix="+" />
+              <span className="stat-label">Distinction grades</span>
             </div>
           </div>
         </div>
@@ -431,35 +609,53 @@ export default function Home() {
         <div className="logo-marquee-fullwidth">
           <div className="logo-marquee-track">
             <div className="logo-pill">
-              <CheckIcon /> HND Computing
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              HND Computing
             </div>
             <div className="logo-pill">
-              <CheckIcon /> Pearson BTEC
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+              Pearson BTEC
             </div>
             <div className="logo-pill">
-              <CheckIcon /> Software Engineering
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+              Software Engineering
             </div>
             <div className="logo-pill">
-              <CheckIcon /> Data Science
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              Data Science
             </div>
             <div className="logo-pill">
-              <CheckIcon /> Java & Python
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              Java &amp; Python
             </div>
             <div className="logo-pill">
-              <CheckIcon /> Web Technologies
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              Web Technologies
             </div>
-            {/* Duplicate for infinite loop effect */}
+            {/* Duplicate set for seamless infinite scroll */}
             <div className="logo-pill">
-              <CheckIcon /> HND Computing
-            </div>
-            <div className="logo-pill">
-              <CheckIcon /> Pearson BTEC
-            </div>
-            <div className="logo-pill">
-              <CheckIcon /> Software Engineering
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              HND Computing
             </div>
             <div className="logo-pill">
-              <CheckIcon /> Data Science
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+              Pearson BTEC
+            </div>
+            <div className="logo-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+              Software Engineering
+            </div>
+            <div className="logo-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              Data Science
+            </div>
+            <div className="logo-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              Java &amp; Python
+            </div>
+            <div className="logo-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              Web Technologies
             </div>
           </div>
         </div>
@@ -475,30 +671,30 @@ export default function Home() {
                 Built for Sri Lankan students balancing deadlines, lectures, and careers.
               </h2>
               <p className="about-desc">
-                ARNOVA Assignment started in 2025 with a straightforward mission: support Sri Lankan HND computing and software engineering students in navigating complex requirements. We are a collective of graduates and senior professionals who master your curriculum and codebases.
+                ARNOVA Academic Studio was established with a straightforward mission: support Sri Lankan BTEC HND computing and software engineering students in navigating complex requirements. We are a collective of graduates and senior professionals who master your curriculum and codebases.
               </p>
               <a href="#order" className="btn-dark">
-                Get Started <ArrowIcon />
+                Get Free Quote <ArrowIcon />
               </a>
             </div>
             <div className="about-right">
               {/* Upmind Performance card mockup */}
-              <div className="performance-card">
+              <div className="performance-card reveal-on-scroll">
                 <div className="perf-header">
                   <h3 className="perf-title">Performance</h3>
                 </div>
                 <div className="perf-stat-row">
-                  <span className="perf-number">49%</span>
+                  <AnimatedCounter value={49} suffix="%" className="perf-number" />
                   <span className="perf-trend">Distinction Rate</span>
                 </div>
                 <div className="perf-bar-container">
-                  <div className="perf-bar-fill" style={{ width: "49%" }}></div>
+                  <div className="perf-bar-fill"></div>
                 </div>
                 <div className="perf-tags">
                   <span className="perf-tag">Strategic</span>
                   <span className="perf-tag">HND-Focused</span>
                   <span className="perf-tag">Zero Plagiarism</span>
-                  <span className="perf-tag">Pass Guarantee</span>
+                  <span className="perf-tag">Full Revision Period</span>
                 </div>
               </div>
             </div>
@@ -509,12 +705,12 @@ export default function Home() {
 
           {/* Why Choose Us */}
           <div className="why-choose-us-wrapper">
-            <span className="section-eyebrow-light">Why Choose Us</span>
-            <h2 className="about-title" style={{ maxWidth: "600px", marginBottom: "24px" }}>
+            <span className="section-eyebrow-light reveal-on-scroll">Why Choose Us</span>
+            <h2 className="about-title reveal-on-scroll" style={{ maxWidth: "600px", marginBottom: "24px" }}>
               Academic support tailored entirely to your curriculum.
             </h2>
             <div className="bento-grid">
-              <div className="bento-card tall">
+              <div className="bento-card tall reveal-on-scroll delay-1">
                 <div className="bento-icon">01</div>
                 <div className="bento-body">
                   <h3 className="bento-title">Experienced Writers</h3>
@@ -523,7 +719,7 @@ export default function Home() {
                   </p>
                 </div>
               </div>
-              <div className="bento-card highlight">
+              <div className="bento-card highlight reveal-on-scroll delay-2">
                 <div className="bento-icon">02</div>
                 <div className="bento-body">
                   <h3 className="bento-title">Affordable Prices</h3>
@@ -532,7 +728,7 @@ export default function Home() {
                   </p>
                 </div>
               </div>
-              <div className="bento-card">
+              <div className="bento-card reveal-on-scroll delay-3">
                 <div className="bento-icon">03</div>
                 <div className="bento-body">
                   <h3 className="bento-title">Confidential Service</h3>
@@ -541,7 +737,7 @@ export default function Home() {
                   </p>
                 </div>
               </div>
-              <div className="bento-card">
+              <div className="bento-card reveal-on-scroll delay-4">
                 <div className="bento-icon">04</div>
                 <div className="bento-body">
                   <h3 className="bento-title">Unlimited Revisions</h3>
@@ -578,7 +774,7 @@ export default function Home() {
       <section className="pricing-section theme-light reveal-on-scroll" id="pricing">
         <div className="section-container">
           <div className="section-header" style={{ textAlign: "center", margin: "0 auto 32px" }}>
-            <span className="section-eyebrow-light">Pricing Schedule 2025-2026</span>
+            <span className="section-eyebrow-light">Transparent Pricing Schedule</span>
             <h2 className="section-title">HND Computing Modules</h2>
             <p style={{ color: "var(--text-light-muted)", marginTop: "12px", maxWidth: "600px", margin: "12px auto 0" }}>
               Select a semester below to view standard tier-based pricing for each module. Custom packages are available based on timeline urgency.
@@ -586,12 +782,16 @@ export default function Home() {
           </div>
 
           {/* Pricing Semester Tab Selector */}
-          <div className="pricing-tabs">
-            {subjects.map((group) => (
+          <div className="pricing-tabs" style={{ position: "relative" }}>
+            {/* Sliding background pill indicator */}
+            <div className="pricing-tab-indicator" style={indicatorStyle}></div>
+            {subjects.map((group, index) => (
               <button
                 key={group.semester}
+                ref={(el) => { tabRefs.current[index] = el; }}
                 className={`pricing-tab-btn ${activeSemester === group.semester ? "active" : ""}`}
                 onClick={() => handleSemesterChange(group.semester)}
+                style={{ position: "relative", zIndex: 2 }}
               >
                 {group.semester}
               </button>
@@ -601,8 +801,16 @@ export default function Home() {
           {/* Pricing Module Grid */}
           <div className={`pricing-grid-layout ${isTransitioning ? "fade-out" : ""}`}>
             {selectedSemesterData.rows.map(([subject, pass, merit, distinction], idx) => (
-              <div className="pricing-module-card" key={idx}>
-                <h4 className="pricing-module-title">{subject}</h4>
+              <div className="pricing-module-card reveal-on-scroll" key={idx} style={{ transitionDelay: `${idx * 80}ms` }}>
+                <h4 className="pricing-module-title">
+                  {subjectSlugs[subject] ? (
+                    <a href={`/modules/${subjectSlugs[subject]}`} className="module-title-link">
+                      {subject}
+                    </a>
+                  ) : (
+                    subject
+                  )}
+                </h4>
                 <div className="pricing-tier-container">
                   <div className="pricing-tier">
                     <span className="tier-label">Pass</span>
@@ -680,11 +888,6 @@ export default function Home() {
               <div className="order-card-form">
                 <form className="form-grid" onSubmit={(e) => e.preventDefault()}>
                   <div className="form-group">
-                    <label className="form-label">Full Name</label>
-                    <input className="form-input" type="text" placeholder="Your name" required />
-                  </div>
-                  
-                  <div className="form-group">
                     <label className="form-label">WhatsApp Number</label>
                     <input className="form-input" type="tel" placeholder="+94 7X XXX XXXX" required />
                   </div>
@@ -699,33 +902,22 @@ export default function Home() {
                     </select>
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Required Grade</label>
-                    <select className="form-select" defaultValue="" required>
-                      <option value="" disabled>Choose grade</option>
-                      <option>Pass</option>
-                      <option>Merit</option>
-                      <option>Distinction</option>
-                    </select>
-                  </div>
-
                   <div className="form-group full-width">
                     <label className="form-label">Deadline Date</label>
                     <input className="form-input" type="date" required />
                   </div>
 
                   <div className="form-group full-width">
-                    <label className="form-label">Assignment Brief & Special Instructions</label>
+                    <label className="form-label">Assignment Brief & Special Instructions (Optional)</label>
                     <textarea 
                       className="form-textarea" 
-                      rows={5} 
-                      placeholder="Paste details on your grading criteria, code languages, program files or other specific instructions."
-                      required
+                      rows={4} 
+                      placeholder="Paste guidelines, grading rubric link, required programming languages, or other instructions."
                     ></textarea>
                   </div>
 
                   <button className="btn-submit full-width" type="submit">
-                    Submit Request - We Will Contact You
+                    Get Free Quote
                   </button>
                 </form>
               </div>
@@ -883,6 +1075,14 @@ export default function Home() {
                   <a href="#about">About</a>
                   <a href="#services">Services</a>
                   <a href="#pricing">Pricing</a>
+                  <a href="/blog">Blog</a>
+                </div>
+              </div>
+              <div className="footer-nav-col">
+                <span className="footer-nav-title">Streams</span>
+                <div className="footer-nav-links">
+                  <a href="/hnd-computing-assignment-help">Computing Help</a>
+                  <a href="/hnd-software-engineering-help">Software Eng Help</a>
                 </div>
               </div>
               <div className="footer-nav-col">
